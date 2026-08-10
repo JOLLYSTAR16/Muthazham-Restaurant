@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cart — Muthazham</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <img src="logo.png" alt="Muthazham" class="logo-img">
+      <span class="logo-tagline">FRESH • TASTY • TRADITIONAL</span>
+    </a>
+    <nav class="nav-links">
+      <a href="index.html#menu">Menu</a>
+      <a href="index.html#story">Our Story</a>
+      <a href="index.html#visit">Visit</a>
+      <a href="login.html" class="login-link" id="navLoginBtn">Login</a>
+      <span id="profileDisplay" style="display:none;" class="profile-badge">
+        <span class="avatar" id="profileAvatar">U</span>
+        <span id="profileName">User</span>
+      </span>
+      <a href="cart.html" class="cart-btn cart-link" aria-label="Open cart">
+        Cart <span id="cartCount">0</span>
+        <span class="cart-badge" id="cartBadge" style="display:none;"></span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<div class="page-hero">
+  <div class="wrap">
+    <p class="section-eyebrow">Checkout</p>
+    <h1>Your cart</h1>
+  </div>
+</div>
+
+<main>
+  <section style="padding-top:56px;">
+    <div class="wrap">
+      <div class="cart-layout">
+        <div id="cartListWrap"></div>
+        <div class="summary-card">
+          <div id="checkoutForm">
+            <h3>Order summary</h3>
+            <div class="subtotal-row"><span>Subtotal</span><span class="amt" id="subtotalAmt">₹0</span></div>
+            <div class="fulfil-toggle">
+              <button class="fulfil-opt active" id="pickupOpt" type="button">Pickup</button>
+              <button class="fulfil-opt" id="deliveryOpt" type="button">Delivery</button>
+            </div>
+            <div class="field"><label for="custName">Full Name</label><input id="custName" type="text" placeholder="Your name"></div>
+            <div class="field"><label for="custEmail">Email</label><input id="custEmail" type="email" placeholder="you@example.com"></div>
+            <div class="field"><label for="custPhone">Phone</label><input id="custPhone" type="tel" placeholder="+91 7356280613"></div>
+            <div class="field" id="addressField" style="display:none;"><label for="custAddress">Delivery address</label><textarea id="custAddress" rows="2" placeholder="Flat, street, landmark"></textarea></div>
+            <button class="checkout-btn" id="placeOrderBtn" disabled>Place order</button>
+            <p style="font-size:12px;color:var(--slate);margin-top:8px;text-align:center;">You must be logged in to place an order.</p>
+          </div>
+          <div id="checkoutConfirm" style="display:none;">
+            <div class="confirm">
+              <div class="confirm-ring">✓</div>
+              <h3>Order placed</h3>
+              <p>We've received your order and will have it ready shortly. A confirmation call may follow at the number provided.</p>
+              <div class="order-id" id="orderIdText"></div>
+            </div>
+            <a href="index.html" class="checkout-btn" style="display:block;text-align:center;">Back to menu</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div class="logo" style="font-size:20px;text-align:center;display:flex;flex-direction:column;align-items:center;">
+      <img src="logo.png" alt="Muthazham" style="height:40px;width:auto;">
+      <span class="logo-tagline" style="font-size:10px;letter-spacing:0.15em;margin-top:2px;">FRESH • TASTY • TRADITIONAL</span>
+    </div>
+    <p class="footer-note"><a href="mailto:hello@muthazham.example">hello@muthazham.example</a> · © 2026 Muthazham Kitchen</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+<script>
+  let fulfilMode = 'pickup';
+  const cartListWrap = document.getElementById('cartListWrap');
+  const subtotalAmt = document.getElementById('subtotalAmt');
+  const placeOrderBtn = document.getElementById('placeOrderBtn');
+  const addressField = document.getElementById('addressField');
+  const pickupOpt = document.getElementById('pickupOpt');
+  const deliveryOpt = document.getElementById('deliveryOpt');
+
+  function renderCartPage() {
+    const cart = getCart();
+    const ids = Object.keys(cart);
+    subtotalAmt.textContent = money(cartSubtotal());
+    const isLoggedIn = !!currentUser;
+    placeOrderBtn.disabled = ids.length === 0 || !isLoggedIn;
+
+    if (ids.length === 0) {
+      cartListWrap.innerHTML = '<div class="empty-cart">Your cart is empty.<br><a href="index.html#menu">Browse the menu</a> to add a dish.</div>';
+      return;
+    }
+    const list = document.createElement('div');
+    list.className = 'cart-list';
+    ids.forEach(id => {
+      const item = MENU.find(m => m.id === id);
+      const qty = cart[id];
+      const row = document.createElement('div');
+      row.className = 'cart-row';
+      row.innerHTML = `
+        <div class="cart-thumb">${iconSvg(item.icon)}</div>
+        <div class="cart-row-body">
+          <div class="cart-row-name">${item.name}</div>
+          <div class="cart-row-price">${money(item.price)} each</div>
+          <div class="qty-ctrl">
+            <button class="qty-btn" data-act="dec">−</button>
+            <span class="qty-num">${qty}</span>
+            <button class="qty-btn" data-act="inc">+</button>
+            <button class="remove-link" data-act="rm">Remove</button>
+          </div>
+        </div>
+        <div class="line-total">${money(item.price * qty)}</div>`;
+      row.querySelector('[data-act="inc"]').addEventListener('click', () => { changeQty(id, 1); renderCartPage(); updateCartBadge(); });
+      row.querySelector('[data-act="dec"]').addEventListener('click', () => { changeQty(id, -1); renderCartPage(); updateCartBadge(); });
+      row.querySelector('[data-act="rm"]').addEventListener('click', () => { removeFromCart(id); renderCartPage(); showToast(item.name + ' removed'); updateCartBadge(); });
+      list.appendChild(row);
+    });
+    cartListWrap.innerHTML = '';
+    cartListWrap.appendChild(list);
+  }
+
+  pickupOpt.addEventListener('click', () => {
+    fulfilMode = 'pickup';
+    pickupOpt.classList.add('active');
+    deliveryOpt.classList.remove('active');
+    addressField.style.display = 'none';
+  });
+  deliveryOpt.addEventListener('click', () => {
+    fulfilMode = 'delivery';
+    deliveryOpt.classList.add('active');
+    pickupOpt.classList.remove('active');
+    addressField.style.display = 'block';
+  });
+
+  document.getElementById('placeOrderBtn').addEventListener('click', () => {
+    if (!currentUser) {
+      showToast('Please log in to place an order');
+      window.location.href = 'login.html';
+      return;
+    }
+    const name = document.getElementById('custName').value.trim();
+    const email = document.getElementById('custEmail').value.trim();
+    const phone = document.getElementById('custPhone').value.trim();
+    if (!name || !email || !phone) { showToast('Please fill in name, email and phone'); return; }
+    if (fulfilMode === 'delivery' && !document.getElementById('custAddress').value.trim()) {
+      showToast('Please add a delivery address');
+      return;
+    }
+    const orderId = 'MTZ-' + Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('orderIdText').textContent = 'Order ' + orderId;
+    document.getElementById('checkoutForm').style.display = 'none';
+    document.getElementById('checkoutConfirm').style.display = 'block';
+    clearCart();
+    renderCartPage();
+    updateCartBadge();
+    showToast('Order placed! 🎉');
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadSession();
+    renderCartPage();
+    updateCartBadge();
+    updateUIForUser();
+    if (currentUser) {
+      document.getElementById('custName').value = currentUser.name || '';
+      document.getElementById('custEmail').value = currentUser.email || '';
+      document.getElementById('custPhone').value = currentUser.phone || '';
+    }
+  });
+</script>
+</body>
+</html>
